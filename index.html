@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Enhanced Design</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <!-- Анимированный фон с числами -->
+    <div class="background-numbers" id="backgroundNumbers"></div>
+
+    <!-- Плавающие частицы -->
+    <div class="floating-particles" id="particles"></div>
+
+    <!-- Главный контейнер -->
+    <div class="container" id="loginContainer">
+        <div class="glass-panel" id="glassPanel">
+            <!-- Логотип -->
+            <div class="logo">
+                <!-- Logo will use logo.png as a mask and be tinted via CSS variable -- current-accent -->
+                <div class="logo-icon" id="logoIcon" role="img" aria-label="Logo"></div>
+                <h1 class="title">Welcome</h1>
+                <p class="subtitle">Добро пожаловать в будущее</p>
+            </div>
+
+            <!-- Поле имени пользователя -->
+            <div class="input-group">
+                <label class="input-label">Имя пользователя</label>
+                <input type="text" class="input-field" id="usernameInput" placeholder="Введите ваше имя" value="Guest">
+            </div>
+
+            <!-- Выбор цвета -->
+            <div class="color-picker-group">
+                <label class="input-label">Выберите цветовую схему</label>
+                <div class="color-options">
+                    <div class="color-option color-green selected" data-color="green"></div>
+                    <div class="color-option color-blue" data-color="blue"></div>
+                    <div class="color-option color-purple" data-color="purple"></div>
+                    <div class="color-option color-red" data-color="red"></div>
+                    <div class="color-option color-yellow" data-color="yellow"></div>
+                </div>
+                <div class="color-options-row2">
+                    <div class="color-option color-cyan" data-color="cyan"></div>
+                    <div class="color-option color-pink" data-color="pink"></div>
+                    <div class="color-option color-orange" data-color="orange"></div>
+                    <div class="color-option color-lime" data-color="lime"></div>
+                </div>
+            </div>
+
+            <!-- Кнопка входа -->
+            <button class="enter-button" id="enterButton">Войти в систему</button>
+        </div>
+    </div>
+
+    <!-- Чат интерфейс -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <!-- Use the same logo mask for avatar so it matches the main logo -->
+            <div class="user-avatar logo-icon" id="userAvatar" role="img" aria-label="User logo"></div>
+            <div class="user-info">
+                <h3 id="chatUsername">Guest</h3>
+                <p id="userStatus">Онлайн</p>
+            </div>
+            <!-- Live online counter -->
+            <div class="online-indicator" id="onlineIndicator">Онлайн: <span id="onlineCount">1</span></div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message system">
+                <p class="message-text">Добро пожаловать в чат! Начните общение...</p>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" class="chat-input-field" id="messageInput" placeholder="Введите сообщение...">
+            <button class="send-button" id="sendButton">➤</button>
+        </div>
+    </div>
+</body>
+</html>

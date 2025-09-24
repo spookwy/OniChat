@@ -1,0 +1,593 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #0c0c0c 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Анимированный фон с числами */
+        .background-numbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .number {
+            position: absolute;
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0.6;
+            animation: float 8s infinite ease-in-out;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            25% { transform: translateY(-20px) rotate(90deg); opacity: 0.8; }
+            50% { transform: translateY(-10px) rotate(180deg); opacity: 0.6; }
+            75% { transform: translateY(-30px) rotate(270deg); opacity: 0.4; }
+        }
+
+        /* Главный контейнер */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Стеклянная панель */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.015);
+            backdrop-filter: blur(60px) saturate(180%);
+            -webkit-backdrop-filter: blur(60px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            padding: 50px;
+            width: 450px;
+            box-shadow: 
+                0 40px 100px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .glass-panel.dynamic-glow {
+            box-shadow: 
+                0 40px 100px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.02),
+                0 0 80px var(--current-accent, rgba(0, 255, 136, 0.1));
+        }
+
+        @keyframes panelGlow {
+            0% { 
+                box-shadow: 0 35px 80px rgba(0, 0, 0, 0.6), 
+                           inset 0 2px 0 rgba(255, 255, 255, 0.05), 
+                           inset 0 -2px 0 rgba(0, 0, 0, 0.1), 
+                           0 0 150px rgba(0, 255, 136, 0.08); 
+            }
+            100% { 
+                box-shadow: 0 35px 80px rgba(0, 0, 0, 0.6), 
+                           inset 0 2px 0 rgba(255, 255, 255, 0.05), 
+                           inset 0 -2px 0 rgba(0, 0, 0, 0.1), 
+                           0 0 200px rgba(0, 255, 136, 0.15); 
+            }
+        }
+
+        /* Декоративные элементы на панели */
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--current-accent, rgba(0, 255, 136, 0.4)), rgba(255, 255, 255, 0.2), var(--current-accent, rgba(0, 255, 136, 0.4)), transparent);
+            animation: scan 5s linear infinite;
+        }
+
+        .glass-panel::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -50%;
+            width: 200%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--current-accent, rgba(0, 255, 136, 0.2)), transparent);
+            animation: scanReverse 7s linear infinite;
+        }
+
+        @keyframes scanReverse {
+            0% { right: -50%; }
+            100% { right: 50%; }
+        }
+
+        @keyframes scan {
+            0% { left: -50%; }
+            100% { left: 50%; }
+        }
+
+        /* Логотип/иконка */
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--current-accent, #00ff88);
+            font-weight: bold;
+            text-shadow: 0 0 20px var(--current-accent, rgba(0, 255, 136, 0.5));
+            transition: all 0.5s ease;
+            /* Use logo.png as a mask so we can tint it with current color */
+            background-color: var(--current-accent, #00ff88);
+            -webkit-mask: url('logo.png') center/cover no-repeat;
+            mask: url('logo.png') center/cover no-repeat;
+            background-size: cover;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 480px) {
+            .glass-panel {
+                width: 90%;
+                padding: 30px 20px;
+            }
+            
+            .chat-header {
+                padding: 15px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        /* Заголовок */
+        .title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .subtitle {
+            color: #b0b0b0;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        /* Поля ввода */
+        .input-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .input-label {
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: block;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 18px 25px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            color: #ffffff;
+            font-size: 16px;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            position: relative;
+        }
+
+        .input-field:focus {
+            border-color: rgba(0, 255, 136, 0.6);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 136, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .input-field::placeholder {
+            color: #666;
+        }
+
+        /* Выбор цвета */
+        .color-picker-group {
+            margin-bottom: 35px;
+        }
+
+        .color-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            justify-items: center;
+            margin-bottom: 15px;
+        }
+
+        .color-options-row2 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            justify-items: center;
+        }
+
+        .color-option {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .color-option::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .color-option:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .color-option.selected {
+            border-color: #ffffff;
+            box-shadow: 
+                0 0 25px rgba(255, 255, 255, 0.4),
+                0 0 50px var(--selected-color, #00ff88);
+            transform: scale(1.15);
+            z-index: 2;
+        }
+
+        .color-option:hover {
+            transform: scale(1.08);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .color-green { 
+            background: linear-gradient(135deg, #00ff88, #00cc6a, #00aa55); 
+            --selected-color: rgba(0, 255, 136, 0.6);
+        }
+        .color-blue { 
+            background: linear-gradient(135deg, #00aaff, #0088cc, #006699); 
+            --selected-color: rgba(0, 170, 255, 0.6);
+        }
+        .color-purple { 
+            background: linear-gradient(135deg, #aa00ff, #8800cc, #660099); 
+            --selected-color: rgba(170, 0, 255, 0.6);
+        }
+        .color-red { 
+            background: linear-gradient(135deg, #ff0066, #cc0044, #990033); 
+            --selected-color: rgba(255, 0, 102, 0.6);
+        }
+        .color-yellow { 
+            background: linear-gradient(135deg, #ffaa00, #cc8800, #996600); 
+            --selected-color: rgba(255, 170, 0, 0.6);
+        }
+        .color-cyan { 
+            background: linear-gradient(135deg, #00ffff, #00cccc, #009999); 
+            --selected-color: rgba(0, 255, 255, 0.6);
+        }
+        .color-pink { 
+            background: linear-gradient(135deg, #ff66cc, #cc4499, #992266); 
+            --selected-color: rgba(255, 102, 204, 0.6);
+        }
+        .color-orange { 
+            background: linear-gradient(135deg, #ff6600, #cc4400, #993300); 
+            --selected-color: rgba(255, 102, 0, 0.6);
+        }
+        .color-lime { 
+            background: linear-gradient(135deg, #66ff00, #44cc00, #339900); 
+            --selected-color: rgba(102, 255, 0, 0.6);
+        }
+
+        /* Кнопка входа */
+        .enter-button {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a, #00aa55);
+            border: none;
+            border-radius: 15px;
+            color: #000000;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            backdrop-filter: blur(10px);
+            /* Используем CSS-переменные для динамического свечения (устанавливаются в script.js) */
+            box-shadow: 
+                0 10px 40px var(--current-accent-shadow, rgba(0,255,136,0.3)),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .enter-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .enter-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.4s ease;
+        }
+
+        .enter-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 20px 60px var(--current-accent-glow, rgba(0,255,136,0.4)),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #00ff99, #00dd77, #00bb66);
+        }
+
+        .enter-button:hover::before {
+            left: 100%;
+        }
+
+        .enter-button:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .enter-button:active {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 20px var(--current-accent-strong, rgba(0,255,136,0.5));
+        }
+
+        /* Дополнительные анимированные элементы */
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ff88;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: particleFloat 10s infinite linear;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100px) translateX(100px); opacity: 0; }
+        }
+
+        /* Чат интерфейс */
+        .chat-container {
+            display: none;
+            min-height: 100vh;
+            position: relative;
+            z-index: 10;
+        }
+
+        .chat-container.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: rgba(255, 255, 255, 0.015);
+            backdrop-filter: blur(60px) saturate(180%);
+            -webkit-backdrop-filter: blur(60px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+
+        .online-indicator {
+            margin-left: auto;
+            color: var(--current-accent, #00ff88);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--current-accent, rgba(0,255,136,0.6));
+            background: rgba(255,255,255,0.02);
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        /* ensure avatar that reuses logo mask is sized correctly */
+        .user-avatar.logo-icon {
+            /* ensure avatar uses left-aligned layout inside header */
+            margin: 0; /* override centering used by main .logo-icon */
+            width: 80px;
+            height: 80px;
+            background-size: cover;
+            -webkit-mask-size: cover;
+            mask-size: cover;
+            flex: 0 0 auto;
+            border-radius: 12px; /* slightly rounded avatar */
+            margin-right: 12px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 15px var(--current-accent, rgba(0, 255, 136, 0.8));
+        }
+
+        .user-info h3 {
+            color: #ffffff;
+            font-size: 18px;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .user-info p {
+            color: #b0b0b0;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 15px 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--current-accent, rgba(0, 255, 136, 0.2)), rgba(255, 255, 255, 0.02));
+            border-color: var(--current-accent, rgba(0, 255, 136, 0.3));
+        }
+
+        .message.system {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .message-text {
+            color: #ffffff;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .chat-input {
+            background: rgba(255, 255, 255, 0.015);
+            backdrop-filter: blur(60px) saturate(180%);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-field {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 25px;
+            padding: 15px 20px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+
+        .chat-input-field:focus {
+            border-color: var(--current-accent, rgba(0, 255, 136, 0.6));
+            box-shadow: 0 0 20px var(--current-accent, rgba(0, 255, 136, 0.2));
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, var(--current-accent-solid, #00ff88), var(--current-accent-dark, #00cc6a));
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #000;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px var(--current-accent, rgba(0, 255, 136, 0.4));
+        }

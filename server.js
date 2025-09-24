@@ -1,0 +1,41 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+// Serve static files (the front-end) from current directory
+app.use(express.static(path.join(__dirname)));
+
+let users = {}; // socketId -> { username, color }
+
+io.on('connection', (socket) => {
+  console.log('connection:', socket.id);
+
+  socket.on('join', (payload) => {
+    users[socket.id] = { username: payload.username || 'Guest', color: payload.color || 'green' };
+    // notify all clients about new online count
+    io.emit('online-count', Object.keys(users).length);
+    // broadcast join message
+    io.emit('message', { type: 'system', text: `${users[socket.id].username} вошёл в чат` });
+  });
+
+  socket.on('message', (payload) => {
+    const user = users[socket.id] || { username: 'Guest', color: 'green' };
+    // broadcast message to everyone
+    io.emit('message', { type: 'user', text: payload.text, username: user.username, color: user.color });
+  });
+
+  socket.on('disconnect', () => {
+    const user = users[socket.id];
+    delete users[socket.id];
+    io.emit('online-count', Object.keys(users).length);
+    if (user) io.emit('message', { type: 'system', text: `${user.username} покинул чат` });
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log('Server running on port', PORT));
