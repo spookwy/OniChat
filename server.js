@@ -38,20 +38,23 @@ io.on('connection', (socket) => {
     // notify all clients about new online count
     io.emit('online-count', Object.keys(users).length);
     // broadcast join message
-    io.emit('message', { type: 'system', text: `${users[socket.id].username} вошёл в чат` });
+    const joinTs = (payload && payload.ts) ? payload.ts : new Date().toISOString();
+    io.emit('message', { type: 'system', text: `${users[socket.id].username} вошёл в чат`, ts: joinTs });
   });
 
   socket.on('message', (payload) => {
     const user = users[socket.id] || { username: 'Guest', color: 'green' };
-    // broadcast message to everyone
-    io.emit('message', { type: 'user', text: payload.text, username: user.username, color: user.color });
+    // use client-provided timestamp if present for deduplication
+    const ts = payload.ts || new Date().toISOString();
+    // broadcast message to everyone, include timestamp
+    io.emit('message', { type: 'user', text: payload.text, username: user.username, color: user.color, ts });
   });
 
   socket.on('disconnect', () => {
     const user = users[socket.id];
     delete users[socket.id];
     io.emit('online-count', Object.keys(users).length);
-    if (user) io.emit('message', { type: 'system', text: `${user.username} покинул чат` });
+    if (user) io.emit('message', { type: 'system', text: `${user.username} покинул чат`, ts: new Date().toISOString() });
   });
 });
 

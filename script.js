@@ -124,9 +124,29 @@
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
 
-        function addMessage(text, type = 'system', author = '') {
+        // track current user so we can align messages correctly
+        let currentUsername = null;
+        let currentColorKey = null;
+
+        // seen set to avoid duplicate messages when server echoes ours
+        const seenMessages = new Set();
+
+        function formatTime(iso) {
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessage(text, type = 'system', author = '', colorKey = null, ts = null) {
             const msg = document.createElement('div');
-            msg.className = 'message ' + (type === 'user' ? 'user' : (type === 'system' ? 'system' : ''));
+            // determine ownership (is this message from current user?)
+            const isUser = type === 'user';
+            const isOwn = isUser && author && currentUsername && (author === currentUsername);
+            if (isUser) {
+                msg.className = 'message ' + (isOwn ? 'user' : 'other');
+            } else {
+                msg.className = 'message system';
+            }
             const p = document.createElement('p');
             p.className = 'message-text';
             // sanitize text to avoid XSS
@@ -143,10 +163,20 @@
                 });
             }
             p.innerHTML = (author ? '<strong>' + escapeHtml(author) + ':</strong> ' : '') + escapeHtml(text);
+            // append timestamp
+            if (ts) {
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'msg-time';
+                timeSpan.textContent = formatTime(ts);
+                p.appendChild(document.createTextNode(' '));
+                p.appendChild(timeSpan);
+            }
             msg.appendChild(p);
-            // color accent for user messages
-            if (type === 'user' && author) {
-                // allow server to pass color by including in message text? we will rely on CSS variables for now
+            // apply per-message accent color (if provided)
+            if (colorKey) {
+                const hex = colorMap[colorKey] || colorKey;
+                // set CSS variable for this message
+                msg.style.setProperty('--msg-accent', hex);
             }
             chatMessagesEl.appendChild(msg);
             // auto scroll
@@ -197,10 +227,17 @@
                     if (loginContainer) loginContainer.style.display = 'none';
                     if (chatContainer) chatContainer.classList.add('active');
 
-                    // Announce join in chat and inform server
-                    addMessage('вошёл в чат', 'system', username);
+                    // set current user info
+                    currentUsername = username;
+                    currentColorKey = colorKey;
+
+                    // Announce join in chat and inform server (include timestamp so server echo can be deduped)
+                    const joinTs = new Date().toISOString();
+                    const joinKey = `${username}::${joinTs}::вошёл в чат`;
+                    seenMessages.add(joinKey);
+                    addMessage('вошёл в чат', 'system', username, null, joinTs);
                     if (socket) {
-                        socket.emit('join', { username, color: colorKey });
+                        socket.emit('join', { username, color: colorKey, ts: joinTs });
                     }
                 }, 150);
             });
@@ -222,11 +259,17 @@
             const text = (messageInput && messageInput.value || '').trim();
             if (!text) return;
             const username = (document.getElementById('chatUsername').textContent || 'Guest').trim();
+            const ts = new Date().toISOString();
             // send via socket if available
             if (socket) {
-                socket.emit('message', { text });
+                socket.emit('message', { text, ts });
+                // mark as seen to avoid duplicate when server echoes
+                const key = `${username}::${ts}::${text}`;
+                seenMessages.add(key);
+                addMessage(text, 'user', username, currentColorKey, ts);
             } else {
-                addMessage(text, 'user', username);
+                // local echo with color and timestamp
+                addMessage(text, 'user', username, currentColorKey, ts);
             }
             if (messageInput) messageInput.value = '';
         }
@@ -252,12 +295,21 @@
         // If socket exists, listen to server events; otherwise keep demo simulation
         if (socket) {
             socket.on('message', (payload) => {
-                if (payload.type === 'system') {
-                    addMessage(payload.text, 'system');
-                } else if (payload.type === 'user') {
-                    addMessage(payload.text, 'user', payload.username || '');
-                }
-            });
+                    // Normalize payload
+                    const type = payload.type || 'user';
+                    const author = payload.username || '';
+                    const text = payload.text || '';
+                    const color = payload.color || null;
+                    const ts = payload.ts || new Date().toISOString();
+
+                    // Build a stable key to dedupe local echoes vs server broadcasts
+                    const key = `${author}::${ts}::${text}`;
+                    if (seenMessages.has(key)) return; // already rendered locally
+                    seenMessages.add(key);
+
+                    // Render message with timestamp and optional color
+                    addMessage(text, type, author, color, ts);
+                });
 
             socket.on('online-count', (count) => {
                 onlineCount = Math.max(1, Number(count) || 1);
@@ -282,3 +334,13 @@
 
     // Инициализируем с зеленым цветом (по умолчанию)
     applyColor('green');
+
+// Handle mobile browser UI (vh) differences: set --vh to 1% of the viewport height
+// This helps position fixed elements above mobile address bars/keyboards.
+function setViewportHeightVar() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+setViewportHeightVar();
+window.addEventListener('resize', () => setViewportHeightVar());
+window.addEventListener('orientationchange', () => setViewportHeightVar());
