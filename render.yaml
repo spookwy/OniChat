@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: xd-html-chat
+    env: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    instanceType: starter
+    healthCheckPath: /

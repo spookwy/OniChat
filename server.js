@@ -5,10 +5,28 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+// Allow CORS so clients hosted on other origins (or Render static frontends) can connect.
+const io = new Server(server, {
+  cors: {
+    origin: '*', // for public demo; consider restricting to your domain in production
+    methods: ['GET', 'POST']
+  }
+});
 
 // Serve static files (the front-end) from current directory
 app.use(express.static(path.join(__dirname)));
+
+// Simple request logger for debugging (Render logs will show requests)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
+// Fallback: for any GET request not handled by static middleware, return index.html
+// This is useful for single-page apps or when some hosts route differently.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 let users = {}; // socketId -> { username, color }
 

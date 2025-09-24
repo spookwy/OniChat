@@ -129,8 +129,25 @@
             msg.className = 'message ' + (type === 'user' ? 'user' : (type === 'system' ? 'system' : ''));
             const p = document.createElement('p');
             p.className = 'message-text';
-            p.textContent = (author ? author + ': ' : '') + text;
+            // sanitize text to avoid XSS
+            function escapeHtml(str) {
+                return str.replace(/[&<>"']/g, function(tag) {
+                    const charsToReplace = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    };
+                    return charsToReplace[tag] || tag;
+                });
+            }
+            p.innerHTML = (author ? '<strong>' + escapeHtml(author) + ':</strong> ' : '') + escapeHtml(text);
             msg.appendChild(p);
+            // color accent for user messages
+            if (type === 'user' && author) {
+                // allow server to pass color by including in message text? we will rely on CSS variables for now
+            }
             chatMessagesEl.appendChild(msg);
             // auto scroll
             chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
@@ -160,6 +177,9 @@
                     // Apply selected color scheme (sets CSS variables)
                     applyColor(colorKey);
 
+                    // Save to localStorage so user is remembered
+                    try { localStorage.setItem('chat_username', username); localStorage.setItem('chat_color', colorKey); } catch (e) {}
+
                     // Update chat header
                     if (chatUsernameEl) chatUsernameEl.textContent = username;
 
@@ -185,6 +205,17 @@
                 }, 150);
             });
         }
+
+        // On load, fill username/color from localStorage if present
+        try {
+            const savedName = localStorage.getItem('chat_username');
+            const savedColor = localStorage.getItem('chat_color');
+            if (savedName && document.getElementById('usernameInput')) document.getElementById('usernameInput').value = savedName;
+            if (savedColor) {
+                const opt = document.querySelector('.color-option[data-color="' + savedColor + '"]');
+                if (opt) opt.click();
+            }
+        } catch (e) {}
 
         // Send message handler
         function sendMessage() {
