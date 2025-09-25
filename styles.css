@@ -398,6 +398,37 @@
         }
 
         /* Кнопка входа */
+
+/* --- Stats number glow & pulse (uses CSS variables set by JS: --current-accent and --current-accent-rgb) --- */
+.stats-panel .stat-item span {
+    color: var(--current-accent, #00ff88);
+    transition: color 360ms ease, text-shadow 360ms ease, transform 280ms ease, opacity 240ms ease;
+    text-shadow: 0 0 6px rgba(var(--current-accent-rgb, 0,255,136), 0.5), 0 0 18px rgba(var(--current-accent-rgb, 0,255,136), 0.12);
+    display: inline-block; /* so transform/animation affects only the number */
+    will-change: transform, text-shadow, filter;
+}
+
+@keyframes statPulse {
+    0%   { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(var(--current-accent-rgb, 0,255,136), 0)); }
+    40%  { transform: translateY(-3px) scale(1.06); filter: drop-shadow(0 0 18px rgba(var(--current-accent-rgb, 0,255,136), 0.95)); }
+    100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(var(--current-accent-rgb, 0,255,136), 0)); }
+}
+
+.stat-bump {
+    animation: statPulse 700ms cubic-bezier(.2,.9,.2,1);
+}
+
+/* small continuous shimmer for idle state (very subtle) */
+.stats-panel .stat-item span.stat-idle {
+    animation: shimmer 6s linear infinite;
+    opacity: 0.98;
+}
+
+@keyframes shimmer {
+    0% { text-shadow: 0 0 6px rgba(var(--current-accent-rgb, 0,255,136), 0.45), 0 0 18px rgba(var(--current-accent-rgb, 0,255,136), 0.08); }
+    50% { text-shadow: 0 0 9px rgba(var(--current-accent-rgb, 0,255,136), 0.65), 0 0 24px rgba(var(--current-accent-rgb, 0,255,136), 0.18); }
+    100% { text-shadow: 0 0 6px rgba(var(--current-accent-rgb, 0,255,136), 0.45), 0 0 18px rgba(var(--current-accent-rgb, 0,255,136), 0.08); }
+}
         .enter-button {
             width: 100%;
             padding: 20px;
@@ -961,6 +992,8 @@
   z-index: 100; /* Ensure panel is above the background */
 }
 
+
+
 .stats-panel h2 {
   margin-bottom: 20px;
   font-size: 24px;
@@ -1173,7 +1206,7 @@
 .lang-icon { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45)) drop-shadow(0 0 6px rgba(255,255,255,0.02)); }
 
 /* Specific fixes for very narrow phone screens (e.g. 368x666) */
-@media (max-width: 380px) and (max-height: 700px) {
+@media (max-width: 580px) and (max-height: 700px) {
     /* Slightly smaller logo and kept centered above the title */
     .logo-icon, .logo .logo-icon {
         width: 84px;

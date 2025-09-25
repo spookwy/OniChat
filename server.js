@@ -50,9 +50,10 @@ async function saveStatsToSupabase(statsObj) {
       .from('chat_stats')
       .upsert({ id: 'global', total_messages: statsObj.totalMessages, record_online: statsObj.recordOnline, total_visits: statsObj.totalVisits });
     if (error) {
-      console.error('Supabase save error:', error.message || error);
+      console.error('Supabase save error:', error.message || error, error);
       return false;
     }
+    console.log('Supabase save succeeded:', data && data[0] ? data[0] : data);
     return true;
   } catch (err) {
     console.error('Supabase save exception:', err.message || err);
@@ -165,6 +166,9 @@ async function updateStats(newStats) {
 io.on('connection', (socket) => {
   console.log('connection:', socket.id);
 
+  // debug: report when a client successfully connects
+  socket.on('connect', () => console.log('socket connect event for', socket.id));
+
   // Send current stats to connecting client
   socket.on('request-stats', () => {
     socket.emit('stats-update', stats);
@@ -176,6 +180,7 @@ io.on('connection', (socket) => {
   io.emit('stats-update', stats);
 
   socket.on('join', (payload) => {
+    console.log('Received join from', socket.id, payload);
     users[socket.id] = { username: payload.username || 'Guest', color: payload.color || 'green' };
 
     // Update record online if necessary
@@ -185,7 +190,10 @@ io.on('connection', (socket) => {
     }
 
     // Persist updated stats
-    (async () => { await saveStatsToSupabase(stats); })();
+    (async () => {
+      const ok = await saveStatsToSupabase(stats);
+      console.log('saveStatsToSupabase returned', ok, 'after join from', socket.id);
+    })();
 
     // Notify all clients about updated stats
     io.emit('stats-update', stats);
@@ -204,8 +212,13 @@ io.on('connection', (socket) => {
 
     // Increment total messages
     stats.totalMessages++;
-    (async () => { await saveStatsToSupabase(stats); })();
+    (async () => {
+      const ok = await saveStatsToSupabase(stats);
+      console.log('saveStatsToSupabase returned', ok, 'after message from', socket.id);
+    })();
     io.emit('stats-update', stats);
+
+    console.log('Received message from', socket.id, 'user', user.username, 'text:', payload.text);
 
     // Broadcast message to everyone
     io.emit('message', { type: 'user', text: payload.text, username: user.username, color: user.color, ts });

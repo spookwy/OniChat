@@ -135,6 +135,80 @@
     const recordOnlineElement = document.getElementById('recordOnline');
     const totalVisitsElement = document.getElementById('totalVisits');
 
+    // Robust updater: always query the DOM at update time to avoid stale element
+    // references (some code replaces these nodes, e.g. language toggle that sets
+    // innerHTML). Use this function from socket handlers so the visible spans are
+    // always updated.
+    function updateStats(stats) {
+        try {
+            const tm = document.getElementById('totalMessages');
+            const ro = document.getElementById('recordOnline');
+            const tv = document.getElementById('totalVisits');
+
+            if (tm) {
+                const prev = tm.textContent;
+                tm.textContent = stats.totalMessages;
+                // ensure idle shimmer class exists
+                tm.classList.add('stat-idle');
+                // bump animation if value changed
+                if (String(prev) !== String(stats.totalMessages)) {
+                    tm.classList.remove('stat-bump');
+                    // force reflow so animation can restart reliably
+                    // eslint-disable-next-line no-unused-expressions
+                    tm.offsetWidth;
+                    tm.classList.add('stat-bump');
+                }
+                tm.style.transition = 'background-color 300ms ease';
+                tm.style.backgroundColor = 'rgba(0,255,136,0.08)';
+                tm.style.fontWeight = '700';
+                tm.style.opacity = '1';
+                if (tm.parentElement) tm.parentElement.style.display = '';
+                setTimeout(() => { tm.style.backgroundColor = ''; }, 500);
+                // cleanup bump class after animation completes
+                tm.addEventListener('animationend', function _onEnd() { tm.classList.remove('stat-bump'); tm.removeEventListener('animationend', _onEnd); });
+            }
+
+            if (ro) {
+                const prev = ro.textContent;
+                ro.textContent = stats.recordOnline;
+                ro.classList.add('stat-idle');
+                if (String(prev) !== String(stats.recordOnline)) {
+                    ro.classList.remove('stat-bump');
+                    // force reflow
+                    ro.offsetWidth;
+                    ro.classList.add('stat-bump');
+                }
+                ro.style.transition = 'background-color 300ms ease';
+                ro.style.backgroundColor = 'rgba(0,255,136,0.08)';
+                ro.style.fontWeight = '700';
+                ro.style.opacity = '1';
+                if (ro.parentElement) ro.parentElement.style.display = '';
+                setTimeout(() => { ro.style.backgroundColor = ''; }, 500);
+                ro.addEventListener('animationend', function _onEnd2() { ro.classList.remove('stat-bump'); ro.removeEventListener('animationend', _onEnd2); });
+            }
+
+            if (tv) {
+                const prev = tv.textContent;
+                tv.textContent = stats.totalVisits;
+                tv.classList.add('stat-idle');
+                if (String(prev) !== String(stats.totalVisits)) {
+                    tv.classList.remove('stat-bump');
+                    tv.offsetWidth;
+                    tv.classList.add('stat-bump');
+                }
+                tv.style.transition = 'background-color 300ms ease';
+                tv.style.backgroundColor = 'rgba(0,255,136,0.08)';
+                tv.style.fontWeight = '700';
+                tv.style.opacity = '1';
+                if (tv.parentElement) tv.parentElement.style.display = '';
+                setTimeout(() => { tv.style.backgroundColor = ''; }, 500);
+                tv.addEventListener('animationend', function _onEnd3() { tv.classList.remove('stat-bump'); tv.removeEventListener('animationend', _onEnd3); });
+            }
+        } catch (e) {
+            console.warn('updateStats error', e);
+        }
+    }
+
         // track current user so we can align messages correctly
         let currentUsername = null;
         let currentColorKey = null;
@@ -217,8 +291,9 @@ const chatStrings = {
         // Socket.io client (will be initialized on page if available)
         let socket = null;
         if (typeof io !== 'undefined') {
-            try {
-                socket = io();
+        try {
+            socket = io();
+            console.debug && console.debug('Attempting socket.io connection...');
             } catch (e) {
                 socket = null;
             }
@@ -277,6 +352,7 @@ const chatStrings = {
                     seenMessages.add(joinKey);
                     addMessage(joinText, 'system', username, null, joinTs);
                     if (socket) {
+                        console.debug && console.debug('Emitting join', { username, color: colorKey, ts: joinTs });
                         socket.emit('join', { username, color: colorKey, ts: joinTs });
                     }
                 }, 150);
@@ -370,6 +446,9 @@ const chatStrings = {
 
         // If socket exists, listen to server events; otherwise keep demo simulation
         if (socket) {
+            socket.on('connect', () => console.debug && console.debug('socket connected', socket.id));
+            socket.on('connect_error', (e) => console.error('socket connect_error', e));
+            socket.on('disconnect', (r) => console.debug && console.debug('socket disconnected', r));
             socket.on('message', (payload) => {
                     // Normalize payload
                     const type = payload.type || 'user';
@@ -392,14 +471,14 @@ const chatStrings = {
                 updateOnlineDisplay();
             });
 
-            // Listen for stats updates from the server
+            // Listen for stats updates from the server (use robust updater)
             socket.on('stats-update', (stats) => {
-                totalMessagesElement.textContent = stats.totalMessages;
-                recordOnlineElement.textContent = stats.recordOnline;
-                totalVisitsElement.textContent = stats.totalVisits;
+                console.debug && console.debug('stats-update received', stats);
+                updateStats(stats);
             });
 
             // Request initial stats on connection
+            console.debug && console.debug('Requesting initial stats');
             socket.emit('request-stats');
         } else {
             // For demo purposes, simulate others joining/leaving every 6-12 seconds
@@ -415,6 +494,8 @@ const chatStrings = {
     createBackgroundNumbers();
     createParticles();
 
+    // debug overlay removed
+
     // Обновление частиц каждые 10 секунд
     setInterval(createParticles, 10000);
 
@@ -427,6 +508,9 @@ function setViewportHeightVar() {
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
+
+// Expose for manual testing in the console
+try { window.updateStats = updateStats; } catch (e) {}
 setViewportHeightVar();
 window.addEventListener('resize', () => setViewportHeightVar());
 window.addEventListener('orientationchange', () => setViewportHeightVar());
@@ -524,23 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-document.addEventListener('DOMContentLoaded', () => {
-  const totalMessagesElement = document.getElementById('totalMessages');
-  const recordOnlineElement = document.getElementById('recordOnline');
-  const totalVisitsElement = document.getElementById('totalVisits');
-
-  if (socket) {
-    // Listen for stats updates from the server
-    socket.on('stats-update', (stats) => {
-      totalMessagesElement.textContent = stats.totalMessages;
-      recordOnlineElement.textContent = stats.recordOnline;
-      totalVisitsElement.textContent = stats.totalVisits;
-    });
-
-    // Request initial stats on connection
-    socket.emit('request-stats');
-  }
-});
+// Note: stats update handling consolidated above using updateStats().
 
 // Position statistics panel only for mobile via JS (desktop handled by CSS)
 function positionStatsPanel() {
