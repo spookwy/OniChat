@@ -130,6 +130,11 @@
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
 
+    // Stats panel elements (may be absent in some views)
+    const totalMessagesElement = document.getElementById('totalMessages');
+    const recordOnlineElement = document.getElementById('recordOnline');
+    const totalVisitsElement = document.getElementById('totalVisits');
+
         // track current user so we can align messages correctly
         let currentUsername = null;
         let currentColorKey = null;
