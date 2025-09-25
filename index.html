@@ -9,6 +9,16 @@
     <script src="script.js" defer></script>
 </head>
 <body>
+    <!-- Loader overlay: logo + progress bar shown at startup -->
+    <div id="loaderOverlay" class="loader-overlay" role="status" aria-hidden="false">
+        <div class="loader-content">
+            <div class="loader-logo logo-icon" id="loaderLogo" aria-hidden="true"></div>
+            <div class="loader-progress" aria-hidden="true">
+                <div class="loader-bar" id="loaderBar" style="width:0%"></div>
+            </div>
+            <div class="loader-percent" id="loaderPercent">0%</div>
+        </div>
+    </div>
     <!-- Анимированный фон с числами -->
     <div class="background-numbers" id="backgroundNumbers"></div>
 
@@ -18,17 +28,30 @@
     <!-- Главный контейнер -->
     <div class="container" id="loginContainer">
         <div class="glass-panel" id="glassPanel">
+            <!-- Иконка Telegram -->
+            <a href="https://t.me/OniChat_live" target="_blank" class="telegram-icon">
+                <img src="telegram.png" alt="Telegram" />
+            </a>
+
+            <!-- Language switcher (top-right of main menu) -->
+            <button id="langButton" class="lang-button" title="Сменить язык / Switch language" aria-label="Switch language">
+                <img src="logos/language.png" alt="Language" class="lang-icon">
+                <span class="lang-label">RUS</span>
+            </button>
+
             <!-- Логотип -->
             <div class="logo">
                 <!-- Logo will use logo.png as a mask and be tinted via CSS variable -- current-accent -->
                 <div class="logo-icon" id="logoIcon" role="img" aria-label="Logo"></div>
-                <h1 class="title">Welcome</h1>
+                <h1 class="title">Добро пожаловать</h1>
                 <p class="subtitle">Добро пожаловать в будущее</p>
             </div>
 
             <!-- Поле имени пользователя -->
             <div class="input-group">
-                <label class="input-label">Имя пользователя</label>
+                <label class="input-label">Имя пользователя 
+                    <img src="logos/user.png" alt="User" class="user-input-icon label-user-icon">
+                </label>
                 <input type="text" class="input-field" id="usernameInput" placeholder="Введите ваше имя" value="Guest">
             </div>
 
@@ -51,7 +74,7 @@
             </div>
 
             <!-- Кнопка входа -->
-            <button class="enter-button" id="enterButton">Войти в систему</button>
+            <button class="enter-button" id="enterButton">Войти в систему <img src="logos/enterblack.png" alt="Enter" class="enter-button-icon"></button>
         </div>
     </div>
 
@@ -64,8 +87,16 @@
                 <h3 id="chatUsername">Guest</h3>
                 <p id="userStatus">Онлайн</p>
             </div>
-            <!-- Live online counter -->
-            <div class="online-indicator" id="onlineIndicator">Онлайн: <span id="onlineCount">1</span></div>
+            <!-- Session timer (centered) -->
+            <div id="sessionTimer" class="session-timer">
+                <span class="session-icon" aria-hidden="true"></span>
+                <span class="session-time">00:00</span>
+            </div>
+            <!-- Live online counter + logout -->
+            <button class="logout-button" id="logoutButton" title="Выйти">
+                <img src="logos/exit.png" alt="Exit" class="logout-icon">
+            </button>
+            <div class="online-indicator" id="onlineIndicator"><span class="online-icon" aria-hidden="true"></span> Онлайн: <span id="onlineCount">1</span></div>
         </div>
         
         <div class="chat-messages" id="chatMessages">
@@ -76,9 +107,25 @@
         
         <div class="chat-input">
             <input type="text" class="chat-input-field" id="messageInput" placeholder="Введите сообщение...">
-            <button class="send-button" id="sendButton">➤</button>
+            <button class="send-button" id="sendButton"><img src="logos/send.png" alt="Send" class="send-icon"></button>
+        </div>
+    </div>
+
+    <!-- Панель статистики -->
+    <div class="stats-panel">
+        <h2 class="stats-title">Статистика <span class="stats-h2-icon" aria-hidden="true"></span></h2>
+        <div class="stat-item">
+            <img src="logos/chat.png" alt="Chat Icon" class="stat-icon">
+            <p>Всего сообщений в чате: <span id="totalMessages">0</span></p>
+        </div>
+        <div class="stat-item">
+            <img src="logos/online.png" alt="Online Icon" class="stat-icon">
+            <p>Рекордный онлайн: <span id="recordOnline">0</span></p>
+        </div>
+        <div class="stat-item">
+            <img src="logos/enter.png" alt="Enter Icon" class="stat-icon">
+            <p>Всего заходов в чат: <span id="totalVisits">0</span></p>
         </div>
     </div>
 </body>
-
 </html>

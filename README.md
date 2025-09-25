@@ -14,13 +14,39 @@ npm start
 
 3. Open `http://localhost:3000` in multiple tabs/devices to test chat.
 
-Deploy to Render (quick)
+Supabase integration (optional, for persistent stats)
 
-1. Push this repo to GitHub.
-2. Create a new Web Service on Render, connect the GitHub repo.
-3. Set the build command: `npm install` and the start command: `npm start`.
-4. Render will provide a public URL. Open it and test.
+1. Create a new project at https://app.supabase.com.
+2. In SQL Editor, run the following to create the `chat_stats` table:
+
+```sql
+create table if not exists chat_stats (
+  id text primary key,
+  total_messages bigint default 0,
+  record_online bigint default 0,
+  total_visits bigint default 0
+);
+
+-- insert a single global row
+insert into chat_stats (id, total_messages, record_online, total_visits) values ('global', 0, 0, 0) on conflict (id) do nothing;
+```
+
+3. Get your project URL and a Service Role Key from Project Settings → API. Keep the service role key secret.
+4. Create a `.env` file in the project root (not committed) with:
+
+```
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+PORT=3000
+```
+
+5. Install dependencies and run the server:
+
+```bash
+npm install
+npm start
+```
 
 Notes
-- The server currently allows CORS from all origins (for demo). Lock it down for production.
-- If you want persistent message history, add a DB (e.g., SQLite, Postgres) and store messages on server.
+- The server uses the Service Role Key to persist stats. Don't expose it in client code or public repos.
+- This setup uses Supabase for a tiny global stats row. For per-message history or more advanced features, add a messages table and proper auth.

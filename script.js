@@ -1,4 +1,4 @@
-        // Генерация случайных чисел на фоне
+// Генерация случайных чисел на фоне
         function createBackgroundNumbers() {
             const container = document.getElementById('backgroundNumbers');
             const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -105,6 +105,12 @@
             // Обновляем кнопку входа
             const button = document.querySelector('.enter-button');
             if (button) button.style.background = gradientMap[color] || gradientMap.green;
+
+            // Also tint the language button to match the accent (if present)
+            try {
+                const langBtn = document.getElementById('langButton');
+                if (langBtn) langBtn.style.backgroundColor = accentColor;
+            } catch (e) {}
         }
 
         // Навешиваем обработчики на опции
@@ -183,6 +189,26 @@
             chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
         }
 
+// Chat-localized strings (used for system messages, placeholders, online label)
+const chatStrings = {
+    ru: {
+        welcome: 'Добро пожаловать в чат! Начните общение...',
+        joined: 'вошёл в чат',
+        left: 'вышел из чата',
+        onlineLabel: 'Онлайн:',
+        userStatus: 'Онлайн',
+        messagePlaceholder: 'Введите сообщение...'
+    },
+    en: {
+        welcome: 'Welcome to the chat! Start the conversation...',
+        joined: 'joined the chat',
+        left: 'left the chat',
+        onlineLabel: 'Online:',
+        userStatus: 'Online',
+        messagePlaceholder: 'Type your message...'
+    }
+};
+
         // Socket.io client (will be initialized on page if available)
         let socket = null;
         if (typeof io !== 'undefined') {
@@ -227,15 +253,24 @@
                     if (loginContainer) loginContainer.style.display = 'none';
                     if (chatContainer) chatContainer.classList.add('active');
 
+                    // Hide the stats panel when entering the chat
+                    const statsPanel = document.querySelector('.stats-panel');
+                    if (statsPanel) statsPanel.style.display = 'none';
+
                     // set current user info
                     currentUsername = username;
                     currentColorKey = colorKey;
 
+                                // Start session timer when user joins
+                                try { startSessionTimer(); } catch (e) {}
+
                     // Announce join in chat and inform server (include timestamp so server echo can be deduped)
                     const joinTs = new Date().toISOString();
-                    const joinKey = `${username}::${joinTs}::вошёл в чат`;
+                    const curLang = (document.documentElement.lang && document.documentElement.lang.startsWith('en')) ? 'en' : 'ru';
+                    const joinText = chatStrings[curLang].joined;
+                    const joinKey = `${username}::${joinTs}::${joinText}`;
                     seenMessages.add(joinKey);
-                    addMessage('вошёл в чат', 'system', username, null, joinTs);
+                    addMessage(joinText, 'system', username, null, joinTs);
                     if (socket) {
                         socket.emit('join', { username, color: colorKey, ts: joinTs });
                     }
@@ -292,6 +327,42 @@
         }
         updateOnlineDisplay();
 
+        // Session timer: shows minutes:seconds since user joined the chat
+        let sessionTimerInterval = null;
+        let sessionSeconds = 0;
+        const sessionTimerEl = document.getElementById('sessionTimer');
+
+        function formatSessionTime(sec) {
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startSessionTimer() {
+            // reset then start
+            sessionSeconds = 0;
+            const timeEl = sessionTimerEl && sessionTimerEl.querySelector('.session-time');
+            if (timeEl) timeEl.textContent = formatSessionTime(sessionSeconds);
+            stopSessionTimer();
+            sessionTimerInterval = setInterval(() => {
+                sessionSeconds += 1;
+                if (timeEl) timeEl.textContent = formatSessionTime(sessionSeconds);
+            }, 1000);
+        }
+
+        function stopSessionTimer() {
+            if (sessionTimerInterval) {
+                clearInterval(sessionTimerInterval);
+                sessionTimerInterval = null;
+            }
+        }
+
+        function resetSessionTimer() {
+            sessionSeconds = 0;
+            const timeEl = sessionTimerEl && sessionTimerEl.querySelector('.session-time');
+            if (timeEl) timeEl.textContent = formatSessionTime(sessionSeconds);
+        }
+
         // If socket exists, listen to server events; otherwise keep demo simulation
         if (socket) {
             socket.on('message', (payload) => {
@@ -315,6 +386,16 @@
                 onlineCount = Math.max(1, Number(count) || 1);
                 updateOnlineDisplay();
             });
+
+            // Listen for stats updates from the server
+            socket.on('stats-update', (stats) => {
+                totalMessagesElement.textContent = stats.totalMessages;
+                recordOnlineElement.textContent = stats.recordOnline;
+                totalVisitsElement.textContent = stats.totalVisits;
+            });
+
+            // Request initial stats on connection
+            socket.emit('request-stats');
         } else {
             // For demo purposes, simulate others joining/leaving every 6-12 seconds
             setInterval(() => {
@@ -344,3 +425,282 @@ function setViewportHeightVar() {
 setViewportHeightVar();
 window.addEventListener('resize', () => setViewportHeightVar());
 window.addEventListener('orientationchange', () => setViewportHeightVar());
+
+// Loader animation: show logo + progress bar for ~1.5s then reveal UI
+function runLoader(duration = 1500) {
+    const overlay = document.getElementById('loaderOverlay');
+    const bar = document.getElementById('loaderBar');
+    const percent = document.getElementById('loaderPercent');
+    if (!overlay || !bar || !percent) return Promise.resolve();
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    return new Promise(resolve => {
+        const start = performance.now();
+        function tick(now) {
+            const t = Math.min(1, (now - start) / duration);
+            const pct = Math.round(t * 100);
+            bar.style.width = pct + '%';
+            percent.textContent = pct + '%';
+            if (t < 1) requestAnimationFrame(tick);
+            else {
+                // small delay then hide overlay smoothly
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.setAttribute('aria-hidden', 'true');
+                    // after transition remove it from DOM to keep page interactable
+                    setTimeout(() => {
+                        try { overlay.remove(); } catch (e) { overlay.style.display = 'none'; }
+                    }, 420);
+                    // reveal main UI parts (ensure they're visible)
+                    const stats = document.querySelector('.stats-panel');
+                    const login = document.getElementById('loginContainer');
+                    if (stats) stats.style.opacity = '';
+                    if (login) login.style.opacity = '';
+                    resolve();
+                }, 220);
+            }
+        }
+        requestAnimationFrame(tick);
+    });
+}
+
+// Run loader immediately on script load
+try { runLoader(1500); } catch (e) {}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const chatContainer = document.getElementById('chatContainer');
+  const enterButton = document.getElementById('enterButton');
+
+  // Initially hide the chat container
+  chatContainer.style.display = 'none';
+
+  // Show the chat container when the enter button is clicked
+  enterButton.addEventListener('click', () => {
+    const loginContainer = document.getElementById('loginContainer');
+    loginContainer.style.display = 'none'; // Hide the login container
+    chatContainer.style.display = 'flex'; // Show the chat container
+        // Hide stats panel when entering the chat
+        const statsPanel = document.querySelector('.stats-panel');
+        if (statsPanel) statsPanel.style.display = 'none';
+  });
+
+    // Logout button: hide chat, show login, restore stats panel, notify server
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            const loginContainer = document.getElementById('loginContainer');
+            // Show login UI
+            if (loginContainer) loginContainer.style.display = '';
+
+            // Hide chat UI
+            if (chatContainer) {
+                chatContainer.style.display = 'none';
+                chatContainer.classList.remove('active');
+            }
+
+            // Restore and reposition stats panel
+            const statsPanel = document.querySelector('.stats-panel');
+            if (statsPanel) {
+                statsPanel.style.display = '';
+                // ensure it's positioned correctly (mobile vs desktop)
+                try { positionStatsPanel(); } catch (e) {}
+            }
+
+            // Optionally inform server about leaving
+            try {
+                const prevUser = currentUsername || (document.getElementById('chatUsername') && document.getElementById('chatUsername').textContent) || null;
+                if (socket && prevUser) socket.emit('leave', { username: prevUser, ts: new Date().toISOString() });
+            } catch (e) {}
+
+            // Clear local current username so the UI returns to anonymous state
+            currentUsername = null;
+            // stop and reset session timer on logout
+            try { stopSessionTimer(); resetSessionTimer(); } catch (e) {}
+        });
+    }
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const totalMessagesElement = document.getElementById('totalMessages');
+  const recordOnlineElement = document.getElementById('recordOnline');
+  const totalVisitsElement = document.getElementById('totalVisits');
+
+  if (socket) {
+    // Listen for stats updates from the server
+    socket.on('stats-update', (stats) => {
+      totalMessagesElement.textContent = stats.totalMessages;
+      recordOnlineElement.textContent = stats.recordOnline;
+      totalVisitsElement.textContent = stats.totalVisits;
+    });
+
+    // Request initial stats on connection
+    socket.emit('request-stats');
+  }
+});
+
+// Position statistics panel only for mobile via JS (desktop handled by CSS)
+function positionStatsPanel() {
+  const stats = document.querySelector('.stats-panel');
+  const main = document.getElementById('glassPanel') || document.querySelector('.glass-panel');
+  if (!stats || !main) return;
+
+  const vw = window.innerWidth;
+  const statsRect = stats.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+
+  if (vw < 769) {
+    // Mobile: place below main panel with 50px gap and center horizontally
+    const gap = 50;
+    let top = Math.round(mainRect.bottom + gap);
+
+    // Ensure there's enough scroll space so stats isn't off-screen
+    const docHeight = document.documentElement.scrollHeight;
+    if (top + statsRect.height + 20 > docHeight) {
+      // extend page by adding margin to main
+      main.style.marginBottom = (statsRect.height + gap + 40) + 'px';
+    }
+
+    stats.style.position = 'absolute';
+    stats.style.left = '50%';
+    stats.style.transform = 'translateX(-50%)';
+    stats.style.top = top + 'px';
+  } else {
+    // Desktop: clear any inline positioning so CSS takes over
+    stats.style.position = '';
+    stats.style.left = '';
+    stats.style.top = '';
+    stats.style.transform = '';
+    // remove any bottom margin set on main
+    if (main.style.marginBottom) main.style.marginBottom = '';
+  }
+}
+
+// Recalculate positioning after DOM content loaded and on events
+window.addEventListener('load', () => setTimeout(positionStatsPanel, 150));
+window.addEventListener('resize', () => setTimeout(positionStatsPanel, 80));
+window.addEventListener('scroll', () => setTimeout(positionStatsPanel, 80));
+
+// Also call after the UI changes (enter button hides login panel)
+document.addEventListener('DOMContentLoaded', () => {
+  positionStatsPanel();
+  // If the main panel can change size later (images, fonts), re-run after a short delay
+  setTimeout(positionStatsPanel, 350);
+
+  const enterBtn = document.getElementById('enterButton');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', () => setTimeout(positionStatsPanel, 200));
+  }
+});
+
+// Language toggle: RU <-> EN
+document.addEventListener('DOMContentLoaded', () => {
+    const langButton = document.getElementById('langButton');
+    const htmlEl = document.documentElement;
+    const titleEl = document.querySelector('.title');
+    const subtitleEl = document.querySelector('.subtitle');
+    const enterBtn = document.getElementById('enterButton');
+    const usernameInput = document.getElementById('usernameInput');
+
+    const strings = {
+        ru: {
+            title: 'Добро пожаловать',
+            subtitle: 'Добро пожаловать в будущее',
+            enter: 'Войти в систему',
+            placeholder: 'Введите ваше имя'
+        },
+        en: {
+            title: 'Welcome',
+            subtitle: 'Welcome to the future',
+            enter: 'Enter',
+            placeholder: 'Type your name'
+        }
+    };
+
+    function applyLang(lang) {
+        if (!strings[lang]) lang = 'ru';
+        htmlEl.lang = (lang === 'en' ? 'en' : 'ru');
+        if (titleEl) titleEl.textContent = strings[lang].title;
+        if (subtitleEl) subtitleEl.textContent = strings[lang].subtitle;
+        if (enterBtn) enterBtn.childNodes.forEach(n => { /* keep icon img, remove text nodes */ });
+        if (enterBtn) enterBtn.innerHTML = strings[lang].enter + ' <img src="logos/enterblack.png" alt="Enter" class="enter-button-icon">';
+        if (usernameInput) usernameInput.placeholder = strings[lang].placeholder;
+            // update language label (ENG/RUS)
+            const labelEl = document.querySelector('.lang-label');
+            if (labelEl) labelEl.textContent = (lang === 'en' ? 'ENG' : 'RUS');
+            // tint the lang button using the current accent color
+            try {
+                const computed = getComputedStyle(document.documentElement).getPropertyValue('--current-accent').trim();
+                const btn = document.getElementById('langButton');
+                if (btn && computed) btn.style.backgroundColor = computed;
+            } catch (e) {}
+
+            // update stats labels
+            const statsTitle = document.querySelector('.stats-title');
+            const statItems = document.querySelectorAll('.stats-panel .stat-item');
+            if (statsTitle) statsTitle.childNodes[0] && (statsTitle.childNodes[0].textContent = (lang === 'en' ? 'Statistics ' : 'Статистика '));
+            if (statItems && statItems.length >= 3) {
+                const s0 = statItems[0].querySelector('p');
+                const s1 = statItems[1].querySelector('p');
+                const s2 = statItems[2].querySelector('p');
+                if (s0) s0.innerHTML = (lang === 'en' ? 'Total chat messages: <span id="totalMessages">' : 'Всего сообщений в чате: <span id="totalMessages">') + (document.getElementById('totalMessages') ? document.getElementById('totalMessages').textContent : '0') + '</span>';
+                if (s1) s1.innerHTML = (lang === 'en' ? 'Record online: <span id="recordOnline">' : 'Рекордный онлайн: <span id="recordOnline">') + (document.getElementById('recordOnline') ? document.getElementById('recordOnline').textContent : '0') + '</span>';
+                if (s2) s2.innerHTML = (lang === 'en' ? 'Total visits: <span id="totalVisits">' : 'Всего заходов в чат: <span id="totalVisits">') + (document.getElementById('totalVisits') ? document.getElementById('totalVisits').textContent : '0') + '</span>';
+            }
+        // flash glow on the button to indicate change
+        if (langButton) {
+            langButton.animate([
+                { boxShadow: '0 0 4px rgba(255,255,255,0.06), 0 0 10px var(--current-accent-glow, rgba(0,255,136,0.12))' },
+                { boxShadow: '0 0 6px rgba(255,255,255,0.09), 0 0 22px var(--current-accent-glow, rgba(0,255,136,0.2))' },
+                { boxShadow: '0 0 4px rgba(255,255,255,0.06), 0 0 10px var(--current-accent-glow, rgba(0,255,136,0.12))' }
+            ], { duration: 420 });
+        }
+
+            // update specific input labels in the login panel
+            try {
+                const loginPanel = document.getElementById('glassPanel');
+                if (loginPanel) {
+                    // Имя пользователя label (first .input-label inside login panel)
+                    const nameLabel = loginPanel.querySelector('.input-group .input-label');
+                    if (nameLabel) nameLabel.textContent = (lang === 'en' ? 'Username' : 'Имя пользователя');
+                    // color picker label (the .input-label directly under .color-picker-group)
+                    const colorLabel = loginPanel.querySelector('.color-picker-group > .input-label');
+                    if (colorLabel) colorLabel.textContent = (lang === 'en' ? 'Choose color scheme' : 'Выберите цветовую схему');
+                }
+            } catch (e) {}
+                // update online label and chat message placeholder
+                try {
+                    const cur = (lang === 'en') ? 'en' : 'ru';
+                    const onlineEl = document.getElementById('onlineIndicator');
+                    if (onlineEl) {
+                        // preserve the icon span and count, replace the middle text
+                        const countSpan = document.getElementById('onlineCount');
+                        onlineEl.innerHTML = '<span class="online-icon" aria-hidden="true"></span> ' + chatStrings[cur].onlineLabel + ' <span id="onlineCount">' + (countSpan ? countSpan.textContent : '1') + '</span>';
+                    }
+                    const msgInput = document.getElementById('messageInput');
+                    if (msgInput) msgInput.placeholder = chatStrings[cur].messagePlaceholder;
+                            // update user status under the nick
+                            const userStatusEl = document.getElementById('userStatus');
+                            if (userStatusEl) userStatusEl.textContent = chatStrings[cur].userStatus;
+
+                            // update the initial welcome system message if present
+                            const firstSystem = document.querySelector('.chat-messages .message.system .message-text');
+                            if (firstSystem) {
+                                // replace only if it's the original welcome (heuristic)
+                                firstSystem.textContent = chatStrings[cur].welcome;
+                            }
+                } catch (e) {}
+    }
+
+    // read saved lang or default to current html lang or 'ru'
+    let saved = localStorage.getItem('chat_lang');
+    if (!saved) saved = (htmlEl.lang && htmlEl.lang.startsWith('en')) ? 'en' : 'ru';
+    applyLang(saved);
+
+    if (langButton) {
+        langButton.addEventListener('click', () => {
+            const cur = (htmlEl.lang && htmlEl.lang.startsWith('en')) ? 'en' : 'ru';
+            const next = cur === 'en' ? 'ru' : 'en';
+            localStorage.setItem('chat_lang', next);
+            applyLang(next);
+        });
+    }
+});
