@@ -1174,11 +1174,12 @@
 
 /* Specific fixes for very narrow phone screens (e.g. 368x666) */
 @media (max-width: 380px) and (max-height: 700px) {
-    /* Slightly smaller logo and nudged to the left */
+    /* Slightly smaller logo and kept centered above the title */
     .logo-icon, .logo .logo-icon {
         width: 84px;
         height: 84px;
-        margin-left: -6px;
+        margin: 0 auto 12px; /* center the logo and keep spacing from the title */
+        display: block;
     }
 
     /* Hide the username and status in the header to save space */
@@ -1249,8 +1250,8 @@
         order: 4;
     }
 
-    /* Make sure the language button doesn't collide with logout (reduce size if present) */
-    .lang-button { right: 56px; top: 10px; }
+    /* Make sure the language button stays at the top-right of the panel */
+    .lang-button { right: 12px; top: 10px; }
 
     /* If any residual spacing pushes items, force the left group to remain left */
     .chat-header > *:first-child { margin-left: 6px; }
