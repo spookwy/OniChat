@@ -174,6 +174,12 @@ io.on('connection', (socket) => {
     socket.emit('stats-update', stats);
   });
 
+  // Send current online count immediately to the connecting socket
+  try {
+    const currentOnlineNow = Object.keys(users).length;
+    socket.emit('online-count', currentOnlineNow);
+  } catch (e) { /** ignore */ }
+
   // Increment total visits
   stats.totalVisits++;
   (async () => { await saveStatsToSupabase(stats); })();

@@ -401,10 +401,14 @@ const chatStrings = {
         }
 
         // Live online counter (demo): starts at 1 (you), and simulates small changes
-        const onlineCountEl = document.getElementById('onlineCount');
         let onlineCount = 1;
         function updateOnlineDisplay() {
-            if (onlineCountEl) onlineCountEl.textContent = String(onlineCount);
+            // Query the DOM each time because some code (e.g. applyLang)
+            // may recreate the <span id="onlineCount"> element and
+            // invalidate cached references. Using getElementById here
+            // guarantees we always update the visible node.
+            const el = document.getElementById('onlineCount');
+            if (el) el.textContent = String(onlineCount);
         }
         updateOnlineDisplay();
 
