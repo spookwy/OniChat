@@ -1,4 +1,14 @@
-require('dotenv').config();
+// Load .env in development if dotenv is available. On platforms like Render
+// environment variables are provided by the host and dotenv may not be installed.
+try {
+  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line global-require
+    const dotenv = require('dotenv');
+    dotenv.config();
+  }
+} catch (e) {
+  // dotenv not installed or failed to load — not fatal in production
+}
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
