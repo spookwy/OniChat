@@ -82,6 +82,32 @@ let stats = {
       // create initial row
       await saveStatsToSupabase(stats);
     }
+
+    // Subscribe to realtime changes on chat_stats so external updates (e.g. direct
+    // writes from clients via PostgREST/anon) are broadcast to connected sockets.
+    try {
+      const channel = supabase
+        .channel('public:chat_stats')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_stats', filter: "id=eq.global" }, (payload) => {
+          console.log('Realtime payload received for chat_stats:', JSON.stringify(payload));
+          try {
+            const row = payload.new || payload.record || payload.payload || {};
+            // Map DB columns to in-memory stats and emit update
+            stats.totalMessages = Number(row.total_messages) || stats.totalMessages;
+            stats.recordOnline = Number(row.record_online) || stats.recordOnline;
+            stats.totalVisits = Number(row.total_visits) || stats.totalVisits;
+            console.log('Updated in-memory stats from realtime:', stats);
+            io.emit('stats-update', stats);
+          } catch (err) {
+            console.error('Error handling realtime payload for chat_stats:', err);
+          }
+        });
+
+      channel.subscribe();
+      console.log('Subscribed to Supabase realtime: chat_stats (id=global)');
+    } catch (err) {
+      console.error('Supabase realtime subscription failed:', err.message || err);
+    }
   }
 })();
 
